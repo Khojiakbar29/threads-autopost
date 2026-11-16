@@ -1,0 +1,34 @@
+name: Publish due Threads posts
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "1 = only print, do not publish"
+        default: "0"
+permissions:
+  contents: write
+concurrency:
+  group: threads-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Publish
+        env:
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
+        run: python publish.py
+      - name: Commit publish marks
+        run: |
+          git config user.name "threads-bot"
+          git config user.email "threads-bot@users.noreply.github.com"
+          git add posts/*/published.json 2>/dev/null || true
+          git diff --cached --quiet || (git commit -m "Mark published posts" && git push)

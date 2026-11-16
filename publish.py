@@ -68,6 +68,9 @@ def publish_part(folder, part, reply_to=None):
 
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
+    if DRY:
+        me = call("GET", USER_ID, {"fields": "id,username"})
+        print(f"connection ok: @{me.get('username')} (id {me.get('id')})")
     done_any = False
     for pj in sorted(glob.glob("posts/*/post.json")):
         folder = os.path.dirname(pj)

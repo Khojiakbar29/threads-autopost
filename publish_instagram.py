@@ -77,7 +77,9 @@ def publish(folder, post):
             kids.append(k)
         cid = create({"media_type": "CAROUSEL", "children": ",".join(kids), "caption": cap})
     elif t == "reel":
-        p = {"media_type": "REELS", "video_url": url_of(folder, post["video"]), "caption": cap, "share_to_feed": "true"}
+        p = {"media_type": "REELS", "video_url": url_of(folder, post["video"]), "caption": cap}
+        if post.get("share_to_feed") is not None:
+            p["share_to_feed"] = "true" if post["share_to_feed"] else "false"
         if post.get("cover"):
             p["cover_url"] = url_of(folder, post["cover"])
         cid = create(p)

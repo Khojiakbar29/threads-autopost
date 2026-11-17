@@ -26,9 +26,17 @@ jobs:
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
         run: python publish.py
+      - name: Publish Instagram
+        if: always()
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
+        run: python publish_instagram.py
       - name: Commit publish marks
+        if: always()
         run: |
           git config user.name "threads-bot"
           git config user.email "threads-bot@users.noreply.github.com"
-          git add posts/*/published.json 2>/dev/null || true
+          git add posts/*/published.json instagram/*/published.json 2>/dev/null || true
           git diff --cached --quiet || (git commit -m "Mark published posts" && git push)

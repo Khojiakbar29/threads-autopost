@@ -122,7 +122,31 @@ def main():
             continue
         if datetime.datetime.fromisoformat(post["publish_at"]) > now:
             continue
-        mid, link = publish(folder, post)
+        # avoid duplicates: if a recent post already has this caption, just mark it
+        head = post.get("caption", "")[:60]
+        recent = call("GET", f"{USER_ID}/media", {"fields": "id,caption,permalink,timestamp", "limit": "5"}).get("data", [])
+        dup = next((m for m in recent if head and (m.get("caption") or "").startswith(head)), None)
+        if dup:
+            json.dump({"published_at": dup.get("timestamp"), "id": dup["id"], "permalink": dup.get("permalink"), "note": "found already published"},
+                      open(os.path.join(folder, "published.json"), "w"), indent=2)
+            print("instagram already published", folder, dup.get("permalink"))
+            return
+        attempts = 3
+        for n in range(attempts):
+            try:
+                mid, link = publish(folder, post)
+                break
+            except RuntimeError as e:
+                if "media_publish" in str(e) and n < attempts - 1:
+                    print("publish failed, retrying in 60s:", str(e)[:200])
+                    time.sleep(60)
+                    recent = call("GET", f"{USER_ID}/media", {"fields": "id,caption,permalink,timestamp", "limit": "5"}).get("data", [])
+                    dup = next((m for m in recent if head and (m.get("caption") or "").startswith(head)), None)
+                    if dup:
+                        mid, link = dup["id"], dup.get("permalink")
+                        break
+                    continue
+                raise
         if not DRY:
             json.dump({"published_at": now.isoformat(), "id": mid, "permalink": link},
                       open(os.path.join(folder, "published.json"), "w"), indent=2)

@@ -66,6 +66,16 @@ def publish(folder, post):
     for f in post.get("images", []):
         if not f.lower().endswith((".jpg", ".jpeg")):
             raise SystemExit(f"{folder}: Instagram accepts JPEG only ({f})")
+    if t == "stories":
+        ids = []
+        for f in post["images"]:
+            sid = create({"media_type": "STORIES", "image_url": url_of(folder, f)})
+            if DRY:
+                continue
+            wait_ready(sid, tries=30)
+            ids.append(call("POST", f"{USER_ID}/media_publish", {"creation_id": sid})["id"])
+            time.sleep(5)
+        return (",".join(ids) or "dry"), None
     if t == "image":
         cid = create({"image_url": url_of(folder, post["images"][0]), "caption": cap})
     elif t == "carousel":
